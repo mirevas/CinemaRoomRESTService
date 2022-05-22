@@ -2,15 +2,11 @@ package cinema;
 
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 public class Controller<seat1> {
@@ -37,7 +33,7 @@ public class Controller<seat1> {
     }
 
     @PostMapping("/purchase")
-    public ResponseEntity<Purchase> purchaseSeat(@RequestBody Seat seat) {
+    public ResponseEntity<?> purchaseSeat(@RequestBody Seat seat) {
         int row = seat.getRow();
         int column = seat.getColumn();
         if (row < 0 || row > total_rows || column < 0 || column > total_columns) {
@@ -69,5 +65,15 @@ public class Controller<seat1> {
             }
         }
         return new ResponseEntity(Map.of("error", "Wrong token!"), HttpStatus.BAD_REQUEST);
+    }
+
+    @PostMapping("/stats")
+    public ResponseEntity<?> stats(@RequestParam Map map) {
+        if (!map.containsKey("password") || !map.get("password").equals("super_secret")){
+            return new ResponseEntity(Map.of("error", "The password is wrong!"), HttpStatus.UNAUTHORIZED);
+        } else {
+            Statistics stats = new Statistics(available_seats, purchased_seats);
+            return ResponseEntity.status(HttpStatus.OK).body(stats);
+        }
     }
 }
