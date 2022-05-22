@@ -10,12 +10,14 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 @RestController
 public class Controller<seat1> {
     private int total_rows = 9;
     private int total_columns = 9;
     private List<Available_Seat> available_seats = getAvailable_seats(total_rows, total_columns);
+    private List<Purchase> purchased_seats = new ArrayList<>();
 
     public List<Available_Seat> getAvailable_seats(int total_rows, int total_columns){
         List<Available_Seat> list = new ArrayList<>();
@@ -35,7 +37,7 @@ public class Controller<seat1> {
     }
 
     @PostMapping("/purchase")
-    public ResponseEntity<Available_Seat> purchaseSeat(@RequestBody Seat seat) {
+    public ResponseEntity<Purchase> purchaseSeat(@RequestBody Seat seat) {
         int row = seat.getRow();
         int column = seat.getColumn();
         if (row < 0 || row > total_rows || column < 0 || column > total_columns) {
@@ -44,10 +46,28 @@ public class Controller<seat1> {
             for (Available_Seat available_seat : available_seats) {
                 if (available_seat.getRow() == seat.getRow() && available_seat.getColumn() == seat.getColumn()) {
                     available_seats.remove(available_seat);
-                    return ResponseEntity.status(HttpStatus.OK).body(available_seat);
+                    Purchase purchase = new Purchase(available_seat);
+                    purchased_seats.add(purchase);
+                    return ResponseEntity.status(HttpStatus.OK).body(purchase);
                 }
             }
             return new ResponseEntity(Map.of("error", "The ticket has been already purchased!"), HttpStatus.BAD_REQUEST);
         }
+    }
+
+    @PostMapping("/return")
+    public ResponseEntity<?> returnSeat(@RequestBody Token token) {
+        for (Purchase purchased_seat : purchased_seats) {
+            if (purchased_seat.getToken().equals(token.getToken())){
+                int row = purchased_seat.getTicket().getRow();
+                int column = purchased_seat.getTicket().getColumn();
+                purchased_seats.remove(purchased_seat);
+                Available_Seat available_seat = new Available_Seat(row, column);
+                available_seats.add(available_seat);
+                Return re = new Return(available_seat);
+                return ResponseEntity.status(HttpStatus.OK).body(re);
+            }
+        }
+        return new ResponseEntity(Map.of("error", "Wrong token!"), HttpStatus.BAD_REQUEST);
     }
 }
